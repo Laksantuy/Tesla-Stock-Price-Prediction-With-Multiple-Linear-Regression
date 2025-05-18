@@ -56,7 +56,7 @@ def show_data(df):
     """Display data information"""
     display_banner("TESLA STOCK DATA")
     print("\nRecent Trading Days:")
-    print(df.head(3))
+    print(df.head(10))
     print("\nKey Statistics:")
     print(df.describe())
 
