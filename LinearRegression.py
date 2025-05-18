@@ -1,186 +1,139 @@
-# Importing Essential Modules
+# Tesla Stock Price Prediction System
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-import joblib
-import os
 
-def load_data():
-    """Load and prepare the dataset"""
-    # Path to the csv dataset
-    datapath = "C:\\Tesla.csv"
-    
+def display_banner(title):
+    """Display a formatted banner for sections"""
+    print("\n" + "="*50)
+    print(title.center(50))
+    print("="*50)
+
+def load_tesla_data():
+    """Load and prepare Tesla stock dataset"""
     try:
-        # Loading the csv file
-        df = pd.read_csv(datapath)
+        # Load Tesla stock data
+        df = pd.read_csv("C:\\Tesla.csv")
         
-        # Dropping date column from our dataset
+        # Display loading message
+        print("\nLoading Tesla stock data...")
+        print(f"Found {len(df)} days of trading data")
+        
+        # Drop date column if it exists
         if 'Date' in df.columns:
             df = df.drop(['Date'], axis=1)
             
         return df
     except Exception as e:
-        print(f"\nError loading data: {e}")
+        print(f"\nError loading Tesla data: {e}")
         return None
 
-def train_model(df):
-    """Train the linear regression model"""
-    # Creating a shadow copy
-    copydf = df.copy()
-
-    # Separating Dependent and Independent Variables
-    y = df["Close"]
-    x = df.drop(["Close", "Adj Close"], axis=1)
-
-    # Splitting the data into training and testing sets
+def train_tesla_model(df):
+    """Train the Tesla stock prediction model"""
+    print("\nTraining Tesla stock prediction model...")
+    
+    # Separate Dependent and Independent Variables
+    y = df["Close"]  # We're predicting closing price
+    x = df.drop(["Close", "Adj Close"], axis=1)  # Using other metrics as predictors
+    
+    # Split the data (80% training, 20% testing)
     xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=0.2)
-
-    # Making the model using linear regression
+    
+    # Create and train linear regression model
     model = LinearRegression()
     model.fit(xTrain, yTrain)
     
-    return model, xTest, yTest, x.columns
-
-def display_data_info(df):
-    """Display information about the dataset"""
-    print("\n" + "="*50)
-    print("DATASET INFORMATION".center(50))
-    print("="*50)
+    # Calculate accuracy
+    accuracy = model.score(xTest, yTest)
     
-    # Printing the first 3 rows of the dataset
-    print("\nFirst 3 rows of the dataset:")
-    print(df.head(3))
+    return model, x.columns, accuracy
 
-    # Printing statistical information of the dataset
-    print("\nStatistical information:")
+def show_tesla_data(df):
+    """Display Tesla stock data information"""
+    display_banner("TESLA STOCK DATA")
+    
+    print("\nRecent Trading Days:")
+    print(df.head(10))
+    
+    print("\nKey Statistics:")
     print(df.describe())
-
-    # Checking for empty data fields in the dataset
-    print("\nMissing values per column:")
+    
+    print("\nMissing Values Check:")
     print(df.isnull().sum())
 
-    # Checking data types of all columns
-    print("\nData types:")
-    print(df.info())
-
-def display_model_info(model, xTest, yTest):
-    """Display information about the trained model"""
-    print("\n" + "="*50)
-    print("MODEL INFORMATION".center(50))
-    print("="*50)
+def predict_tesla_price(model, features):
+    """Predict Tesla stock closing price based on user input"""
+    display_banner("TESLA STOCK PRICE PREDICTION")
     
-    # Checking the accuracy using R2
-    print("\nModel Accuracy (R2 Score):", model.score(xTest, yTest))
-
-    # Getting the intercept and coefficients
-    print("\nIntercept:", model.intercept_)
-    print("Coefficients:", model.coef_)
-
-def make_prediction(model, feature_columns):
-    """Make a prediction based on user input"""
-    print("\n" + "="*50)
-    print("MAKE PREDICTION".center(50))
-    print("="*50)
+    print("\nEnter Tesla stock metrics for prediction:")
+    print("(Typical values: Open=250.00, High=255.00, Low=245.00, Volume=15000000)")
     
-    try:
-        # Get all required inputs
-        print("\nEnter the following stock details:")
-        inputs = []
-        for col in feature_columns:
-            while True:
-                try:
-                    val = float(input(f"{col}: ").strip().replace(',', ''))
-                    inputs.append(val)
-                    break
-                except ValueError:
-                    print("Invalid input. Please enter a numeric value.")
-        
-        # Create DataFrame with all inputs
-        input_df = pd.DataFrame([inputs], columns=feature_columns)
-        print("\nInput DataFrame:")
-        print(input_df)
-        
-        # Make prediction
-        prediction = model.predict(input_df)
-        print(f"\nPredicted closing price: {prediction[0]:.2f}")
-    except Exception as e:
-        print(f"\nAn error occurred: {e}")
+    inputs = []
+    for col in features:
+        while True:
+            try:
+                # Get user input for each stock metric
+                val = float(input(f"{col}: ").strip().replace(',', ''))
+                inputs.append(val)
+                break
+            except ValueError:
+                print("Invalid input. Please enter a numeric value.")
+    
+    # Create DataFrame with user inputs
+    input_df = pd.DataFrame([inputs], columns=features)
+    
+    # Make prediction
+    prediction = model.predict(input_df)
+    
+    print("\nPrediction Results:")
+    print("-"*40)
+    print("Input Metrics:")
+    print(input_df)
+    print(f"\nPredicted Tesla Closing Price: ${prediction[0]:.2f}")
+    print("-"*40)
 
-def save_model(model):
-    """Save the trained model to a file"""
-    try:
-        filename = input("\nEnter filename to save model (e.g., 'stock_model.pkl'): ").strip()
-        joblib.dump(model, filename)
-        print(f"\nModel saved successfully as {filename}")
-    except Exception as e:
-        print(f"\nError saving model: {e}")
-
-def load_model():
-    """Load a trained model from file"""
-    try:
-        filename = input("\nEnter filename to load model (e.g., 'stock_model.pkl'): ").strip()
-        model = joblib.load(filename)
-        print("\nModel loaded successfully")
-        return model
-    except Exception as e:
-        print(f"\nError loading model: {e}")
-        return None
-
-def main_menu():
-    """Display the main menu and handle user choices"""
-    model = None
-    feature_columns = None
-    xTest, yTest = None, None
-    df = None
+def main():
+    """Main Tesla Stock Prediction System"""
+    # Initialize variables
+    tesla_model = None
+    model_features = None
+    model_accuracy = None
+    tesla_data = None
     
     while True:
-        print("\n" + "="*50)
-        print("STOCK PRICE PREDICTION SYSTEM".center(50))
-        print("="*50)
-        print("\nMAIN MENU")
-        print("1. Load and display dataset")
-        print("2. Train model and display information")
-        print("3. Make a prediction")
-        print("4. Save trained model")
-        print("5. Load trained model")
-        print("6. Exit")
+        display_banner("TESLA STOCK PREDICTION SYSTEM")
+        print("\nMain Menu:")
+        print("1. Load & View Tesla Stock Data")
+        print("2. Train Prediction Model")
+        print("3. Predict Closing Price")
+        print("4. Exit")
         
-        choice = input("\nEnter your choice (1-6): ").strip()
+        choice = input("\nEnter your choice (1-4): ").strip()
         
         if choice == '1':
-            df = load_data()
-            if df is not None:
-                display_data_info(df)
+            tesla_data = load_tesla_data()
+            if tesla_data is not None:
+                show_tesla_data(tesla_data)
         elif choice == '2':
-            if df is not None:
-                model, xTest, yTest, feature_columns = train_model(df)
-                display_model_info(model, xTest, yTest)
+            if tesla_data is not None:
+                tesla_model, model_features, model_accuracy = train_tesla_model(tesla_data)
+                print(f"\nTesla prediction model trained successfully!")
+                print(f"Model Accuracy (R² Score): {model_accuracy:.4f}")
             else:
-                print("\nPlease load dataset first (Option 1)")
+                print("\nPlease load Tesla data first (Option 1)")
         elif choice == '3':
-            if model is not None:
-                make_prediction(model, feature_columns)
+            if tesla_model is not None:
+                predict_tesla_price(tesla_model, model_features)
             else:
-                print("\nPlease train or load a model first (Option 2 or 5)")
+                print("\nPlease train the model first (Option 2)")
         elif choice == '4':
-            if model is not None:
-                save_model(model)
-            else:
-                print("\nNo model to save. Please train a model first (Option 2)")
-        elif choice == '5':
-            loaded_model = load_model()
-            if loaded_model is not None:
-                model = loaded_model
-                # Note: When loading a model, you might need to provide feature_columns separately
-                # This is a simplified version - in production you'd want to save/load this info too
-        elif choice == '6':
-            print("\nExiting program. Goodbye!")
+            print("\nThank you for using the Tesla Stock Prediction System!")
             break
         else:
-            print("\nInvalid choice. Please enter a number between 1 and 6.")
+            print("\nInvalid choice. Please enter 1-4.")
         
         input("\nPress Enter to continue...")
 
 if __name__ == "__main__":
-    main_menu()
+    main()
