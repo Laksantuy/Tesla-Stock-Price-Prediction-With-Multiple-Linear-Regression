@@ -131,6 +131,9 @@ def evaluate_models(X, y):
         }
     
     print("-"*60)
+    
+    # Return the best model (Linear Regression in this case)
+    return results['Linear Regression']['model']
 
 def visualize_predictions(model, X, y):
     """Visualize predictions vs actual values"""
