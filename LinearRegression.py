@@ -5,7 +5,6 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_absolute_error
-from sklearn.dummy import DummyRegressor
 import matplotlib.pyplot as plt
 
 def display_banner(title):
@@ -34,12 +33,6 @@ def load_tesla_data():
         df['Prev_Volume'] = df['Volume'].shift(1)     # Previous day's volume
         df['Day_of_Week'] = df.index.dayofweek        # Day of week (0=Monday)
         df['Month'] = df.index.month                  # Month
-        
-        # 5-day moving average (properly lagged)
-        df['MA_5'] = df['Close'].shift(1).rolling(window=5).mean()
-        
-        # Price changes (properly lagged)
-        df['Return_1d'] = df['Close'].pct_change(1).shift(1)  # Previous day's return
         
         # Drop rows with missing values from feature creation
         df = df.dropna()
@@ -78,18 +71,17 @@ def evaluate_models(X, y):
     tscv = TimeSeriesSplit(n_splits=5)
     
     models = {
-        'Linear Regression': LinearRegression(),
-        'Dummy Regressor': DummyRegressor(strategy="mean")  # Add a dummy model
+        'Linear Regression': LinearRegression()
     }
     
     results = {}
     
     display_banner("MODEL EVALUATION")
-    print(f"\n{'Model':<20} {'Train R²':<10} {'Test R²':<10} {'Gap':<10} {'MAE':<10}")
-    print("-"*60)
+    print(f"\n{'Model':<20} {'Train R²':<10} {'Test R²':<10} {'Gap':<10}")
+    print("-"*50)
     
     for name, model in models.items():
-        train_scores, test_scores, mae_scores, gaps = [], [], [], []
+        train_scores, test_scores, gaps = [], [], []
         
         for train_idx, test_idx in tscv.split(X):
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -102,35 +94,31 @@ def evaluate_models(X, y):
             train_r2 = model.score(X_train, y_train)
             y_pred = model.predict(X_test)
             test_r2 = r2_score(y_test, y_pred)
-            mae = mean_absolute_error(y_test, y_pred)
             
             # Calculate overfitting gap
             gap = train_r2 - test_r2
             
             train_scores.append(train_r2)
             test_scores.append(test_r2)
-            mae_scores.append(mae)
             gaps.append(gap)
         
         # Calculate averages
         avg_train = np.mean(train_scores)
         avg_test = np.mean(test_scores)
         avg_gap = np.mean(gaps)
-        avg_mae = np.mean(mae_scores)
         
         # Print results
-        print(f"{name:<20} {avg_train:.4f}    {avg_test:.4f}    {avg_gap:.4f}    ${avg_mae:.2f}")
+        print(f"{name:<20} {avg_train:.4f}    {avg_test:.4f}    {avg_gap:.4f}")
         
         # Store results
         results[name] = {
             'model': model,
             'train_r2': avg_train, 
             'test_r2': avg_test,
-            'gap': avg_gap,
-            'mae': avg_mae
+            'gap': avg_gap
         }
     
-    print("-"*60)
+    print("-"*50)
     
     # Return the best model (Linear Regression in this case)
     return results['Linear Regression']['model']
@@ -209,11 +197,7 @@ def predict_price(model, scaler, features):
         # Example default values
         inputs = {
             'Prev_Close': 250.0,
-            'Prev_Volume': 20000000,
-            'Day_of_Week': 1,  # Tuesday
-            'Month': 5,  # May
-            'MA_5': 245.0,
-            'Return_1d': 0.02  # 2% return
+            'Day_of_Week': 1  # Tuesday
         }
         
         # Filter to only include available features
