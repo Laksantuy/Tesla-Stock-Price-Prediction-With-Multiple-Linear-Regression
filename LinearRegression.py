@@ -159,17 +159,12 @@ def visualize_predictions(model, X, y):
 def show_data(df):
     """Display data information"""
     display_banner("TESLA STOCK DATA")
-<<<<<<< HEAD
-    print("\nRecent Trading Days:")
-    print(df.head(10))
-=======
     
     # Show recent data with created features
     print("\nRecent Trading Days with Features:")
     print(df.tail(10))
     
     # Display key statistics
->>>>>>> teslaStock
     print("\nKey Statistics:")
     print(df['Close'].describe())
     
